@@ -28,8 +28,8 @@ rgb = Squid(16, 20, 21)
 # Import Adafruit IO MQTT client.
 from Adafruit_IO import MQTTClient
 
-ADAFRUIT_IO_KEY      = 'Insert Key'
-ADAFRUIT_IO_USERNAME = 'Insert Username' 
+ADAFRUIT_IO_KEY      = 'YOURKEYHERE'
+ADAFRUIT_IO_USERNAME = 'YOURUSERNAME' 
 
 client = MQTTClient(ADAFRUIT_IO_USERNAME, ADAFRUIT_IO_KEY)
 
@@ -40,7 +40,7 @@ logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-fh = logging.FileHandler('log2fonagps.txt')
+fh = logging.FileHandler('trackerlog.txt')
 fh.setLevel(logging.INFO)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
@@ -142,27 +142,10 @@ def getSerialInfo():
 				if int(array[1]) >= 10:
 					logging.info("Great Signal! -> "+signal)
 					break
-		#logging.info("in_waiting: "+str(ser.in_waiting))
-		#logging.info("out_waiting: "+str(ser.out_waiting))
 		try:
         	        ser.reset_input_buffer()
         	except:
-	                logging.info("IO ERROR")
-
-		#logging.info("in_waiting: "+str(ser.in_waiting))
-		#logging.info("out_waiting: "+str(ser.out_waiting))
-		#ser.write("AT+CBC\r")
-                # Get signal strength
-                #while battery == None:		
-		#	ser.write("AT+CBC\r")
-		#	response = ser.readline()
-		#	logging.info(response)
-		#	if "+CBC: " in response and "+CBC: 0,0,0" not in response:
-		#		logging.info("got battery")
-		#		array = re.split('\s|,', response)
-		#		battery=array[2]
-		#		logging.info(battery)	
-		#		break
+	                logging.info("IO ERROR resetting buffer")
 
 		ser.write("AT+CGNSPWR=1\r")
 		draw.rectangle((0,0,width,height), outline=0, fill=0)
@@ -210,7 +193,7 @@ def getSerialInfo():
 	try:
 		ser.reset_input_buffer()
 	except:
-		logging.info("IO ERROR")
+		logging.info("IO ERROR resetting buffer")
 	#logging.info("in_waiting: "+str(ser.in_waiting))
         #logging.info("out_waiting: "+str(ser.out_waiting))
 	ser.close()
@@ -233,9 +216,6 @@ def openPPPD():
 			#output2 = subprocess.check_output("plog")
 			#logging.info("output2"+output2+"output2")
 			logging.info("started pppd fona")
-			#gibberish =  '''!}!}!} }2}"}&}'''
-			#output3 = subprocess.check_output("cat /var/log/syslog | grep -a chat | tail -10", shell=True)
-			#if gibberish in output3:
 			#	logging.info("GIBBERISH\nGIBBERISH\nGIBBERISH") 
 			if "Connect script failed" not in output2:
 				#logging.info(output2)
@@ -245,18 +225,9 @@ def openPPPD():
 				disp.image(image2)
 				disp.display()
 				break
-			#else:
-				#logging.info("connect script FAILED... RESTARTING FONA")
-				#timesFailed = timesFailed + 1
-				#GPIO.output(18, 0)         # set GPIO18 to 0/GPIO.LOW
-				#sleep(.1)
-				#GPIO.output(18, 1)         # set GPIO18 to 1/GPIO.HIGH
-				#sleep(8)
-			#rgb.set_color(OFF)
 		# Make sure the connection is working
 		while True:
 			output3 = subprocess.check_output("cat /var/log/syslog | grep -a pppd | tail -1", shell=True)
-			#rgb.set_color(BLUE)
 			#logging.info("OUTPUT3\n"+output3+"\nOUTPUT3")
 			if "DNS address" in output3:
 				logging.info("connection established")
@@ -277,8 +248,6 @@ def openPPPD():
 				disp.image(image)
 				disp.display()
 				break
-			#else:
-			#	continue
 			
 def upload():
 	global sucessfulUploads, failedPings, signal, lat, lon, alt, latency, timesFailed
@@ -292,28 +261,30 @@ def upload():
 		time.sleep(1)
 		failedPings = failedPings + 1
 	elif "io.adafruit.com : xmt/rcv/%loss = 1/1/0%" in out:
-		draw.rectangle((0,0,width,height), outline=0, fill=0)
-		image2 = Image.open('/home/pi/P0W-GPS-Tracker/Adafruit-IO-Logo.ppm').convert('1')
-		disp.image(image2)
-		disp.display()
-		array = re.split("/+", out)
-	        print array
-		latency = array[7]
-		logging.info('Latency: '+latency+'ms')
-		d['value'] = signal
-		d['lat'] = lat
-		d['lon'] = lon
-		d['ele'] = alt
-		client.connect()
-		client.publish('gpsdatabatterytest',json.dumps(d))
-		rgb.set_color(PURPLE)
-		logging.info("Published to IO")
-		sleep(2)
-		#rgb.set_color(OFF)
-		sucessfulUploads = sucessfulUploads + 1
-		draw.rectangle((0,0,width,height), outline=0, fill=0)
-		disp.image(image)
-		disp.display()
+		try:
+			draw.rectangle((0,0,width,height), outline=0, fill=0)
+			image2 = Image.open('/home/pi/P0W-GPS-Tracker/Adafruit-IO-Logo.ppm').convert('1')
+			disp.image(image2)
+			disp.display()
+			array = re.split("/+", out)
+	        	#print array
+			latency = array[7]
+			logging.info('Latency: '+latency+'ms')
+			d['value'] = signal
+			d['lat'] = lat
+			d['lon'] = lon
+			d['ele'] = alt
+			client.connect()
+			client.publish('gpsdata',json.dumps(d))
+			rgb.set_color(PURPLE)
+			logging.info("Published to IO")
+			sleep(2)
+			sucessfulUploads = sucessfulUploads + 1
+			draw.rectangle((0,0,width,height), outline=0, fill=0)
+			disp.image(image)
+			disp.display()
+		except Exception as e:
+                        logging.info("Connection error: "+str(e))
 
 def resetVars():
 	global signal, connected, lat, lon, alt, timesFailed, battery

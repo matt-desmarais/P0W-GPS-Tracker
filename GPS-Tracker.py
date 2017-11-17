@@ -186,25 +186,14 @@ def getSerialInfo():
 	except serial.serialutil.SerialException:
                 logging.info("serial exception")
                 getSerialInfo()
-	#ser.reset_output_buffer()
-	#ser.flushInput()
-	#logging.info("in_waiting: "+str(ser.in_waiting))
-	#logging.info("out_waiting: "+str(ser.out_waiting))
 	try:
 		ser.reset_input_buffer()
 	except:
 		logging.info("IO ERROR resetting buffer")
-	#logging.info("in_waiting: "+str(ser.in_waiting))
-        #logging.info("out_waiting: "+str(ser.out_waiting))
 	ser.close()
 # Start PPPD
 def openPPPD():
 	global failedConnections, timesFailed, lat, lon, alt, signal, connected, maxTries
-#	draw.rectangle((0,0,width,height), outline=0, fill=0)
-#	image2 = Image.open('/home/pi/P0W-GPS-Tracker/connectingtonetwork.ppm').convert('1')
-#	disp.image(image2)
-#	disp.display()
-	#rgb.set_color(OFF)
 	while timesFailed < maxTries:
 		while True:
 			rgb.set_color(BLUE)
@@ -213,7 +202,6 @@ def openPPPD():
 			subprocess.call("sudo pon fona", shell=True)
 			sleep(2)
 			output2 = subprocess.check_output("cat /var/log/syslog | grep -a pppd | tail -4", shell=True)
-			#output2 = subprocess.check_output("plog")
 			#logging.info("output2"+output2+"output2")
 			logging.info("started pppd fona")
 			#	logging.info("GIBBERISH\nGIBBERISH\nGIBBERISH") 
